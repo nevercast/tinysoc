@@ -25,9 +25,7 @@ module hardware
       // USB Interface
       output USBPU,
       output USBP,
-      output USBN,
-
-      );
+      output USBN);
 
    // Disable USB interface
    assign USBPU = 1'b1;
