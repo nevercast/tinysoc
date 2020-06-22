@@ -5,9 +5,7 @@ filesets:
 
   rtl:
     files: [tinysoc.v : {file_type : verilogSource}]
-
-  proginfo:
-    files: [sw/proginfo.py : {file_type : user, copyto : proginfo.py}]
+    depend: [picorv32]
 
   tb:
     files: [tinysoc_tb.v : {file_type : verilogSource}]
@@ -19,7 +17,7 @@ filesets:
 targets:
   default: &default
     filesets : [rtl]
-    toplevel: ["is_toplevel? (tinysoc)"]
+    toplevel: ["is_toplevel? (hardware)"]
 
   sim:
     default_tool: icarus
@@ -34,15 +32,13 @@ targets:
   
   tinyfpga_bx:
     default_tool : icestorm
-    filesets : [rtl, proginfo, tinyfpga_bx]
-    hooks:
-      post_run: [tinyprog]
+    filesets : [rtl, tinyfpga_bx]
     parameters : [clk_freq_hz=16000000]
     tools:
       icestorm:
         nextpnr_options : [--lp8k, --package, cm81]
         pnr: next
-    toplevel : tinysoc
+    toplevel : hardware
 
 parameters:
   clk_freq_hz:
@@ -53,11 +49,3 @@ parameters:
     datatype    : int
     description : Number of pulses to run in testbench
     paramtype   : vlogparam
-
-scripts:
-  iceprog:
-    cmd : [python3, proginfo.py, iceprog]
-  tinyprog:
-    cmd : [python3, proginfo.py, tinyprog]
-  ujprog:
-    cmd : [python3, proginfo.py, ujprog]
