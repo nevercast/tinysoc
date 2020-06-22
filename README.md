@@ -7,7 +7,7 @@ I build and develop the core with this container https://github.com/nevercast/do
 Using a container helps me keep the differences across my machines minimum.
 
 # Building
-Provided that you have Docker and Python3 installed, you should be able to use build.sh to build the 
+Provided that you have Docker and Python3 installed, you should be able to use build.py to build the 
 firmware image, and program it. The quickest way to flash tinysoc on to your TinyFPGA BX is:
 
 ```
