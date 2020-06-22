@@ -1,2 +1,5 @@
 # Output files from fusesoc 
 build/
+
+# Cached libraries
+fusesoc_libraries/
