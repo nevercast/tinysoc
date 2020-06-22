@@ -1,7 +1,7 @@
 import os
 import sys
 
-system_name = "fusesoc_utils_blinky_1.0"
+system_name = "nevercast_tinysoc_tinysoc_0.1"
 print("")
 print("Build was completed")
 print("")
