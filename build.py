@@ -76,7 +76,7 @@ def check_process(process, okay_exitcodes=(0,)):
 
 def cmd_interactive(**parameters):
   container_name = parameters['container_name']
-  check_process(_invoke_container(container_name))
+  check_process(_invoke_container(container_name, interactive=True))
 
 def cmd_build(**parameters):
   container_name = parameters['container_name']
