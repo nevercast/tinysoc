@@ -3,9 +3,12 @@ name : nevercast:tinysoc:tinysoc:0.1
 
 filesets:
 
+  utilities:
+    depend : ["fusesoc:utils:generators"]
+
   rtl:
     files: [tinysoc.v : {file_type : verilogSource}]
-    depend: [picorv32]
+    depend: [picorv32, usbserial]
 
   tb:
     files: [tinysoc_tb.v : {file_type : verilogSource}]
@@ -15,10 +18,6 @@ filesets:
     files: [tinyfpga_bx/pinout.pcf : {file_type : PCF}]
 
 targets:
-  default: &default
-    filesets : [rtl]
-    toplevel: ["is_toplevel? (hardware)"]
-
   sim:
     default_tool: icarus
     filesets : [rtl, tb]
@@ -32,7 +31,8 @@ targets:
   
   tinyfpga_bx:
     default_tool : icestorm
-    filesets : [rtl, tinyfpga_bx]
+    filesets : [utilities, rtl, tinyfpga_bx]
+    generate: [usb_pll_48m]
     parameters : [clk_freq_hz=16000000]
     tools:
       icestorm:
@@ -49,3 +49,11 @@ parameters:
     datatype    : int
     description : Number of pulses to run in testbench
     paramtype   : vlogparam
+
+generate:
+  usb_pll_48m:
+    generator: icepll
+    parameters:
+      freq_in  : 16
+      freq_out : 48
+      module: yes
