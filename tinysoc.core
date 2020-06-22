@@ -10,9 +10,16 @@ filesets:
     files: [peripheral/usb_uart/usb_uart.v : {file_type : verilogSource}]
     depend: [usbserial]
 
+  soc:
+    files:
+      - soc/simpleuart.v
+      - soc/spimemio.v
+      - soc/picosoc.v
+    file_type : verilogSource
+    depend : [picorv32]
+
   rtl:
     files: [tinysoc.v : {file_type : verilogSource}]
-    depend: [picorv32]
 
   tb:
     files: [tinysoc_tb.v : {file_type : verilogSource}]
@@ -35,7 +42,7 @@ targets:
   
   tinyfpga_bx:
     default_tool : icestorm
-    filesets : [utilities, usbuart, rtl, tinyfpga_bx]
+    filesets : [utilities, usbuart, rtl, soc, tinyfpga_bx]
     generate: [usb_pll_48m]
     parameters : [clk_freq_hz=16000000]
     tools:
@@ -53,6 +60,14 @@ parameters:
     datatype    : int
     description : Number of pulses to run in testbench
     paramtype   : vlogparam
+  PICORV32_REGS:
+    datatype : str
+    default  : picosoc_regs
+    paramtype : vlogdefine
+  PICOSOC_MEM:
+    datatype : str
+    default : picosoc_mem
+    paramtype : vlogdefine
 
 generate:
   usb_pll_48m:
