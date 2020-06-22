@@ -68,8 +68,8 @@ module hardware
       .reset      (reset),
 
       // pins
-      .USBP( USBP ),
-      .USBN( USBN ),
+      .pin_usb_p( USBP ),
+      .pin_usb_n( USBN ),
 
       // uart pipeline in
       .uart_in_data( uart_in_data ),

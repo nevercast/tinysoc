@@ -6,9 +6,13 @@ filesets:
   utilities:
     depend : ["fusesoc:utils:generators"]
 
+  usbuart:
+    files: [peripheral/usb_uart/usb_uart.v : {file_type : verilogSource}]
+    depend: [usbserial]
+
   rtl:
     files: [tinysoc.v : {file_type : verilogSource}]
-    depend: [picorv32, usbserial]
+    depend: [picorv32]
 
   tb:
     files: [tinysoc_tb.v : {file_type : verilogSource}]
@@ -31,7 +35,7 @@ targets:
   
   tinyfpga_bx:
     default_tool : icestorm
-    filesets : [utilities, rtl, tinyfpga_bx]
+    filesets : [utilities, usbuart, rtl, tinyfpga_bx]
     generate: [usb_pll_48m]
     parameters : [clk_freq_hz=16000000]
     tools:
