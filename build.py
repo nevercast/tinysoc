@@ -7,13 +7,32 @@ from subprocess import PIPE, Popen
 
 BUILD_IMAGE = 'build/nevercast_tinysoc_tinysoc_0.1/tinyfpga_bx-icestorm/nevercast_tinysoc_tinysoc_0.1.bin'
 
+RISCV_TOOLCHAIN_PATH = '/opt/riscv32i/bin/'
+FIRMWARE_OUTPUT_PATH = 'build/firmware/'
+FIRMWARE_IMAGE_NAME = 'firmware'
+FIRMWARE_LINKER_SCRIPT = 'firmware/sections.lds'
+FIRMWARE_SOURCE = [
+  'firmware/start.S',
+  'firmware/entry.c'
+]
+
 current_prefix = None 
+announced_mountpath = False 
 
 def _log_stdout(output_line):
   sys.stdout.write(current_prefix + output_line)
 
 def _log_stderr(output_line):
   sys.stderr.write(current_prefix + output_line)
+
+def _set_subtask(subtask_name, subtask_index=None, subtask_total=None):
+  global current_prefix
+  if subtask_index is None or subtask_total is None:
+    subtask_text = subtask_name
+  else:
+    subtask_text = '[{}/{}] {}'.format(subtask_index, subtask_total, subtask_name)
+  root_task = current_prefix.split(':', 1)[0]
+  current_prefix = '{}: {}: '.format(root_task, subtask_text) 
 
 def _thread_queue_output(out, queue):
     for line in iter(out.readline, ''):
@@ -50,8 +69,11 @@ def _invoke(*popen_args, interactive=False, **popen_kwargs):
   return process 
 
 def _invoke_container(container_name, container_command=None, **invoke_kwargs):
+  global announced_mountpath
   absolute_path = os.path.abspath(os.getcwd())
-  _log_stdout('Mounting {} to /workspace in container.\n'.format(absolute_path))
+  if not announced_mountpath:
+    _log_stdout('Mounting {} to /workspace in container.\n'.format(absolute_path))
+    announced_mountpath = True
   if container_command is not None:
     if isinstance(container_command, (list, tuple)):
       extra_args = list(container_command)
@@ -71,8 +93,8 @@ def check_process(process, okay_exitcodes=(0,)):
   if process.returncode not in okay_exitcodes:
     _log_stderr('Process failed to exit cleanly, errno: {}\n'.format(process.returncode))
     sys.exit(process.returncode)
-  else:
-    _log_stdout('Process exited cleanly. :)\n')
+  else: # Don't log anything, it's noisy
+    pass
 
 def cmd_interactive(**parameters):
   container_name = parameters['container_name']
@@ -83,11 +105,40 @@ def cmd_build(**parameters):
   check_process(_invoke_container(container_name, 'fusesoc run --target=tinyfpga_bx nevercast:tinysoc:tinysoc'))
 
 def cmd_program(**parameters):
-  check_process(_invoke(['tinyprog', '-p', BUILD_IMAGE]))
+  check_process(_invoke(['tinyprog', '-p', BUILD_IMAGE, '-u', FIRMWARE_OUTPUT_PATH + FIRMWARE_IMAGE_NAME + '.bin']))
 
 def cmd_test(**parameters):
   container_name = parameters['container_name']
   check_process(_invoke_container(container_name, 'fusesoc run --target=sim nevercast:tinysoc:tinysoc'))
+
+def cmd_compile(**parameters):
+  container_name = parameters['container_name']
+  _set_subtask('init', 1, 3)
+  check_process(
+    _invoke(['mkdir', '-p', FIRMWARE_OUTPUT_PATH])
+  )
+  _set_subtask('gcc', 2, 3)
+  check_process(
+    _invoke_container(container_name, 
+      '{riscv_toolchain}riscv32-unknown-elf-gcc -v -march=rv32imc -nostartfiles -Wl,-Bstatic,-T,{sections},--strip-debug,-Map={output_path}{image_name}.map,--cref -ffreestanding -nostdlib -o {output_path}{image_name}.elf {sources}'.format(
+        riscv_toolchain=RISCV_TOOLCHAIN_PATH,
+        output_path=FIRMWARE_OUTPUT_PATH,
+        sections=FIRMWARE_LINKER_SCRIPT,
+        image_name=FIRMWARE_IMAGE_NAME,
+        sources=' '.join(FIRMWARE_SOURCE)
+      )
+    )
+  )
+  _set_subtask('objcopy', 3, 3)
+  check_process(
+    _invoke_container(container_name, 
+      '{riscv_toolchain}riscv32-unknown-elf-objcopy -v -O binary {output_path}{image_name}.elf {output_path}{image_name}.bin'.format(
+        riscv_toolchain=RISCV_TOOLCHAIN_PATH,
+        output_path=FIRMWARE_OUTPUT_PATH,
+        image_name=FIRMWARE_IMAGE_NAME
+      )
+    )
+  )
 
 def help(executable):
   print('! tinysoc build script !')
@@ -96,6 +147,7 @@ def help(executable):
   print('  clk_freq_hz    :: Clock frequency to use for simulation and hardware builds, default: 16MHz')
   print('commands:')
   print('  interactive    :: Start an interactive container and open shell')
+  print('  compile        :: Compile tinysoc firmware into a flashable image')
   print('  build          :: Build a tinysoc hardware image for the TinyFPGA')
   print('  program        :: Program the last built image to the TinyFPGA')
   print('  test           :: Simulate the test bench')
@@ -122,7 +174,7 @@ def main():
   }
   command_chain = []
   valid_commands = [
-    'interactive', 'build', 'program', 'test'
+    'interactive', 'build', 'program', 'test', 'compile'
   ]
 
   for argument in arguments:
