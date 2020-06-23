@@ -45,24 +45,26 @@ module hardware
 
    // Parameter comes from tinysoc.core
    parameter clk_freq_hz = 16_000_000;
-
-   // Add tinysoc module (which just blinks the LED for now)
-   // tinysoc
-   //   #(.clk_freq_hz (clk_freq_hz))
-   // tinyfpga
-   //   (.clk (CLK),
-   //    .q   (LED));
    
-   wire clk_48mhz;
-   wire clk_locked;
+   wire clk48;
+   wire clk48_locked;
+   (*keep*) wire clk12;
 
    // Use an icepll generated pll
-   pll pll48( .clock_in(CLK), .clock_out(clk_48mhz), .locked( clk_locked ) );
+   pll pll48( .clock_in(CLK), .clock_out(clk48), .locked( clk48_locked ) );
+   
+   // Create a /4 clock divider to generate 12mhz
+   reg	[1:0]	clk12_counter;
+   always @(posedge clk48)
+      if (clk48_locked)
+	      counter <= counter + 1'b1;
+   assign clk12 = counter[1];
+
+   // Track the 48MHz lock
+   wire clk_locked = clk48_locked;
 
    ///////////////////////////////////
    // Power-on Reset
-   // Only begins to reset after the
-   // 48MHz PLL is locked.
    ///////////////////////////////////
    reg [24:0] reset_cnt = 0;
    reg was_in_reset = 1;
@@ -70,7 +72,7 @@ module hardware
    wire resetn = ~reset;
    wire BOOT_LED;
 
-   always @(posedge CLK) begin
+   always @(posedge clk12) begin
       if ( clk_locked ) begin
          reset_cnt <= reset_cnt + reset;
          if (reset) begin 
@@ -96,7 +98,7 @@ module hardware
 
    // usb uart - this instanciates the entire USB device.
    usb_uart uart (
-      .clk_48mhz  (clk_48mhz),
+      .clk_48mhz  (clk48),
       .reset      (reset),
 
       // pins
@@ -152,7 +154,7 @@ module hardware
    wire RUNTIME_LED = USER_LED_ENABLE ? USER_LED : PULSE_LED;
    assign LED = reset ? BOOT_LED : RUNTIME_LED;
 
-   always @(posedge CLK) begin
+   always @(posedge clk12) begin
       if (reset) begin
          gpio <= 0;
       end else begin
@@ -191,7 +193,7 @@ module hardware
    //    .PROGADDR_IRQ(32'h0005_0010),
    //    .MEM_WORDS(2048)                // use 2KBytes of block RAM by default
    // ) soc (
-   //    .clk          (CLK         ),
+   //    .clk          (clk12         ),
    //    .resetn       (resetn      ),
 
    //    .ser_tx       (PIN_TX       ),

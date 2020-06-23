@@ -4,6 +4,7 @@ name : nevercast:tinysoc:tinysoc:0.1
 filesets:
 
   utilities:
+    files: [hooks/nextpnr_pre_pack.py]
     depend : ["fusesoc:utils:generators"]
 
   usbuart:
@@ -47,7 +48,7 @@ targets:
     parameters : [clk_freq_hz=16000000]
     tools:
       icestorm:
-        nextpnr_options : [--lp8k, --package, cm81]
+        nextpnr_options : [--lp8k, --package, cm81, --pre-pack, "../src/nevercast_tinysoc_tinysoc_0.1/hooks/nextpnr_pre_pack.py"]
         pnr: next
     toplevel : hardware
 
